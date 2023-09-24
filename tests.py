@@ -1,6 +1,6 @@
 import unittest
 
-from comps import Maze
+from maze import Maze
 
 
 class Tests(unittest.TestCase):

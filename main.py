@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from tkinter import Canvas, Tk
 
-from comps import Line, Maze
+from maze import Line, Maze
 
 BASE_DIR = Path(__file__).resolve().parent
 
