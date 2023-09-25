@@ -1,6 +1,7 @@
 import random
 import time
 from dataclasses import dataclass
+from queue import Queue
 from tkinter import Canvas
 from typing import Literal
 
@@ -119,7 +120,7 @@ class Maze:
         cell_size_y,
         win=None,
         seed=None,
-        algo: Literal["bfs", "dfs"] = "dfs",
+        animation_speed=0.05,
     ):
         self.__x1 = x1
         self.__y1 = y1
@@ -129,9 +130,9 @@ class Maze:
         self.__cell_size_y = cell_size_y
         self.__win = win
         self._cells = list()
+        self.__animation_speed = animation_speed
         if seed is not None:
             random.seed(seed)
-        self.algo = algo
         self._create_cells()
         self._break_entrance_and_exit()
         self._break_walls_r(0, 0)
@@ -156,7 +157,7 @@ class Maze:
         if self.__win is None:
             return
         self.__win.redraw()
-        time.sleep(0.05)
+        time.sleep(self.__animation_speed)
 
     def _break_entrance_and_exit(self):
         entrance = self._cells[0][0]
@@ -230,12 +231,36 @@ class Maze:
             for j in range(self.__num_rows):
                 self._cells[i][j].visited = False
 
-    def solve(self):
-        if self.algo == "dfs":
+    def solve(self, algo="dfs"):
+        if algo == "dfs":
             return self._dfs_solve(0, 0)
-        elif self.algo == "bfs":
-            return self._bgs_solve(0, 0)
-        raise ValueError(f"Unknown Algorithm: {self.algo}")
+        elif algo == "bfs":
+            return self._bfs_solve(0, 0)
+        raise ValueError(f"Unknown Algorithm: {algo}")
+
+    def _bfs_solve(self, i, j):
+        cell: Cell = self._cells[i][j]
+        cell.visited = True
+        q = [((i, j, i, j))]
+        while q:
+            self._animate()
+            i, j, i2, j2 = q.pop(0)
+            self._cells[i][j].visited = True
+            adj_locs = self._adjacent_cells(i2, j2, unvisited_only=True)
+            for loc in adj_locs:
+                i3, j3 = loc
+                in_queue = (i2, j2, i3, j3) in q
+                was_visited = self._cells[i3][j3].visited
+                not_visitable = not self.is_visitable(i2, j2, i3, j3)
+                if in_queue or was_visited or not_visitable:
+                    continue
+                q.append((i2, j2, i3, j3))
+            tar: Cell = self._cells[i2][j2]
+            if not tar.visited and self.is_visitable(i, j, i2, j2):
+                self._cells[i][j].draw_move(tar)
+                if tar == self._cells[-1][-1]:
+                    return True
+        return False
 
     def _dfs_solve(self, i, j):
         cell: Cell = self._cells[i][j]
@@ -269,7 +294,8 @@ class Maze:
         return dirs_
 
     def is_visitable(self, i, j, i2, j2) -> bool:
-        assert not (i == i2 and j == j2)
+        if i == i2 and j == j2:
+            return False
         a: Cell = self._cells[i][j]
         b: Cell = self._cells[i2][j2]
         if i < i2:
